@@ -1,10 +1,8 @@
-
 import * as XLSX from 'xlsx';
 import { ServiceRow } from '../types';
 
 /**
- * Normalizes Boolean values from Excel.
- * Accepts: true, 'true', 1, '1', 'yes', '○', 'TRUE'
+ * Chuẩn hóa giá trị Boolean từ Excel.
  */
 const isTrueValue = (val: any): boolean => {
   if (val === true || val === 'true' || val === 'TRUE' || val === 1 || val === '1' || val === 'yes' || val === 'YES' || val === '○') {
@@ -14,12 +12,10 @@ const isTrueValue = (val: any): boolean => {
 };
 
 /**
- * Parses numeric price from Excel cell.
- * Returns the number if valid, or 'Không áp dụng' if empty/invalid.
+ * Xử lý giá tiền từ cell Excel.
  */
 const parsePrice = (val: any): number | string => {
   if (val === undefined || val === null || val === '') return 'Không áp dụng';
-  // Clean string (remove spaces, commas, etc)
   const cleaned = val.toString().replace(/[^0-9.-]+/g, "");
   const num = Number(cleaned);
   return (cleaned !== "" && !isNaN(num)) ? num : 'Không áp dụng';
@@ -35,7 +31,6 @@ export const parseExcelFile = async (file: File): Promise<ServiceRow[]> => {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        // Convert to JSON using headers
         const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
         const allRows: ServiceRow[] = json
@@ -46,7 +41,7 @@ export const parseExcelFile = async (file: File): Promise<ServiceRow[]> => {
             
             return {
               id: `${index}-${Date.now()}`,
-              serviceName: (vnName || jpName).trim(),
+              serviceName: (vnName || jpName).toString().trim(),
               originalPrice: originalPrice as any, 
               campaign1: parsePrice(item['Khuyến mãi 1']),
               campaign2: parsePrice(item['Khuyến mãi 2']),
@@ -57,16 +52,11 @@ export const parseExcelFile = async (file: File): Promise<ServiceRow[]> => {
             };
           })
           .filter(row => {
-            // 1. Phải có tên và giá gốc hợp lệ
             const hasBasicData = typeof row.originalPrice === 'number' && row.serviceName !== '';
-            
-            // 2. Phải áp dụng cho ít nhất một khu vực (không bị FALSE hết cả 4 cột)
             const isApplicableSomewhere = row.isSaiGon || row.isHue || row.isCanTho || row.isHaNoi;
-            
             return hasBasicData && isApplicableSomewhere;
           });
 
-        // 3. Loại bỏ các dịch vụ trùng tên (chỉ giữ lại dịch vụ xuất hiện đầu tiên)
         const uniqueRows: ServiceRow[] = [];
         const seenNames = new Set<string>();
 
