@@ -16,6 +16,7 @@ const isTrueValue = (val: any): boolean => {
  */
 const parsePrice = (val: any): number | string => {
   if (val === undefined || val === null || val === '') return 'Không áp dụng';
+  // Chuyển về chuỗi và lọc bỏ các ký tự không phải số/dấu chấm
   const cleaned = val.toString().replace(/[^0-9.-]+/g, "");
   const num = Number(cleaned);
   return (cleaned !== "" && !isNaN(num)) ? num : 'Không áp dụng';
@@ -35,34 +36,38 @@ export const parseExcelFile = async (file: File): Promise<ServiceRow[]> => {
 
         const allRows: ServiceRow[] = json
           .map((item, index) => {
-            const vnName = item['Tên dịch vụ'] || item['Tên tiếng Việt'] || item['Tên VN'] || '';
-            const jpName = item['施術名'] || '';
+            const vnName = (item['Tên dịch vụ'] || item['Tên tiếng Việt'] || item['Tên VN'] || item['Service Name'] || '').toString().trim();
+            const jpName = (item['施術名'] || item['Japanese Name'] || item['項目'] || '').toString().trim();
             const originalPrice = parsePrice(item['定価'] || item['Giá gốc']);
             
             return {
               id: `${index}-${Date.now()}`,
-              serviceName: (vnName || jpName).toString().trim(),
+              serviceName: vnName || jpName || 'No Name',
+              serviceNameVi: vnName,
+              serviceNameJa: jpName,
               originalPrice: originalPrice as any, 
-              campaign1: parsePrice(item['Khuyến mãi 1']),
-              campaign2: parsePrice(item['Khuyến mãi 2']),
-              isSaiGon: isTrueValue(item['Sài Gòn']),
-              isHue: isTrueValue(item['Huế']),
-              isCanTho: isTrueValue(item['Cần Thơ']),
-              isHaNoi: isTrueValue(item['Hà Nội']),
+              campaign1: parsePrice(item['Khuyến mãi 1'] || item['Promo 1']),
+              campaign2: parsePrice(item['Khuyến mãi 2'] || item['Promo 2']),
+              isSaiGon: isTrueValue(item['Sài Gòn'] || item['SG']),
+              isHue: isTrueValue(item['Huế'] || item['HUE']),
+              isCanTho: isTrueValue(item['Cần Thơ'] || item['CT']),
+              isHaNoi: isTrueValue(item['Hà Nội'] || item['HN']),
             };
           })
           .filter(row => {
-            const hasBasicData = typeof row.originalPrice === 'number' && row.serviceName !== '';
-            const isApplicableSomewhere = row.isSaiGon || row.isHue || row.isCanTho || row.isHaNoi;
-            return hasBasicData && isApplicableSomewhere;
+            // Chỉ lọc bỏ những dòng không có tên và không có giá gốc
+            const hasBasicData = (row.serviceNameVi !== '' || row.serviceNameJa !== '') && typeof row.originalPrice === 'number';
+            return hasBasicData;
           });
 
+        // Loại bỏ trùng lặp dựa trên tên và giá
         const uniqueRows: ServiceRow[] = [];
-        const seenNames = new Set<string>();
+        const seenKeys = new Set<string>();
 
         for (const row of allRows) {
-          if (!seenNames.has(row.serviceName)) {
-            seenNames.add(row.serviceName);
+          const key = `${row.serviceNameVi}-${row.serviceNameJa}-${row.originalPrice}`;
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
             uniqueRows.push(row);
           }
         }

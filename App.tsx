@@ -10,8 +10,7 @@ import {
   X,
   FileSpreadsheet,
   Check,
-  ShoppingCart,
-  Languages
+  ShoppingCart
 } from 'lucide-react';
 import { parseExcelFile } from './services/excelParser';
 import { ServiceRow } from './types';
@@ -22,7 +21,7 @@ const translations = {
   vi: {
     import: 'NHẬP DỮ LIỆU EXCEL',
     search: 'Tìm kiếm dịch vụ',
-    searchPlaceholder: 'Nhập tên...',
+    searchPlaceholder: 'Nhập tên dịch vụ...',
     worksheet: 'BẢNG TẠM TÍNH',
     subtitle: 'Pricing Consultation Worksheet',
     clearAll: 'XOÁ TOÀN BỘ',
@@ -44,7 +43,8 @@ const translations = {
     noData: 'Dữ liệu rỗng',
     backToTop: 'Lên đầu',
     confirmClear: 'Bạn có chắc chắn muốn xoá TOÀN BỘ dịch vụ khỏi bảng tạm tính?',
-    errorExcel: 'Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng tệp tin.'
+    errorExcel: 'Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng tệp tin.',
+    notApplicable: 'Không áp dụng'
   },
   ja: {
     import: 'エクセル読み込み',
@@ -71,15 +71,9 @@ const translations = {
     noData: 'データなし',
     backToTop: 'トップへ',
     confirmClear: '仮計算書からすべてのサービスを削除してもよろしいですか？',
-    errorExcel: 'Excelファイルの読み込み中にエラーが発生しました。形式を確認してください。'
+    errorExcel: 'Excelファイルの読み込み中にエラーが発生しました。形式を確認してください。',
+    notApplicable: '対象外'
   }
-};
-
-const formatVND = (value: number | string) => {
-  if (value === 'Không áp dụng' || value === 'N/A') return 'N/A';
-  const num = Number(value);
-  if (isNaN(num)) return value;
-  return `${num.toLocaleString()} đ`;
 };
 
 const App: React.FC = () => {
@@ -90,6 +84,15 @@ const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('vi');
 
   const t = translations[lang];
+
+  const formatVND = (value: number | string) => {
+    if (value === 'Không áp dụng' || value === 'N/A' || value === undefined || value === null) {
+      return t.notApplicable;
+    }
+    const num = Number(value);
+    if (isNaN(num)) return value;
+    return `${num.toLocaleString()} đ`;
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,10 +114,21 @@ const App: React.FC = () => {
     }
   };
 
+  const getServiceDisplayName = (service: ServiceRow) => {
+    if (lang === 'ja') {
+      return service.serviceNameJa || service.serviceNameVi || service.serviceName;
+    }
+    return service.serviceNameVi || service.serviceName;
+  };
+
   const filteredCatalog = useMemo(() => {
     if (!searchQuery) return data;
     const q = searchQuery.toLowerCase();
-    return data.filter(s => s.serviceName.toLowerCase().includes(q));
+    return data.filter(s => {
+      const nameVi = (s.serviceNameVi || '').toLowerCase();
+      const nameJa = (s.serviceNameJa || '').toLowerCase();
+      return nameVi.includes(q) || nameJa.includes(q);
+    });
   }, [data, searchQuery]);
 
   const addToCart = (service: ServiceRow) => {
@@ -126,6 +140,7 @@ const App: React.FC = () => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
+  // Khôi phục logic xác nhận trước khi xoá
   const clearCart = () => {
     if (cart.length === 0) return;
     if (window.confirm(t.confirmClear)) {
@@ -149,7 +164,9 @@ const App: React.FC = () => {
     }
 
     if (!isValid) return { display: 'Không áp dụng', isPromo: false };
-    if (typeof promoValue === 'number') return { display: promoValue.toString(), isPromo: true };
+    if (typeof promoValue === 'number') {
+      return { display: promoValue.toString(), isPromo: true };
+    }
     return { display: service.originalPrice.toString(), isPromo: false };
   };
 
@@ -194,19 +211,18 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Language Switcher */}
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
               <button 
                 onClick={() => setLang('vi')}
-                className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${lang === 'vi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${lang === 'vi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                VN
+                VIETNAM
               </button>
               <button 
                 onClick={() => setLang('ja')}
-                className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${lang === 'ja' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${lang === 'ja' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                JP
+                JAPANESE
               </button>
             </div>
 
@@ -246,10 +262,11 @@ const App: React.FC = () => {
                 {filteredCatalog.length > 0 ? (
                   filteredCatalog.map(service => {
                     const inCart = cart.some(item => item.id === service.id);
+                    const displayName = getServiceDisplayName(service);
                     return (
                       <div key={service.id} className={`p-3.5 rounded-2xl border transition-all ${inCart ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-100 hover:shadow-md'}`}>
                         <div className="mb-3">
-                          <p className="text-sm font-bold text-slate-800 leading-snug mb-1">{service.serviceName}</p>
+                          <p className="text-sm font-bold text-slate-800 leading-snug mb-1">{displayName}</p>
                           <p className="text-xs font-bold text-slate-400 tabular-nums">{t.originalPrice}: {formatVND(service.originalPrice)}</p>
                         </div>
                         <button
@@ -288,9 +305,9 @@ const App: React.FC = () => {
                 {cart.length > 0 && (
                   <button 
                     onClick={clearCart}
-                    className="px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-90 relative z-[80] cursor-pointer"
+                    className="group px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer border border-rose-100/50"
                   >
-                    <Trash2 className="w-4 h-4" /> {t.clearAll}
+                    <Trash2 className="w-4 h-4 transition-transform group-hover:-rotate-12" /> {t.clearAll}
                   </button>
                 )}
               </div>
@@ -316,6 +333,7 @@ const App: React.FC = () => {
                         const ct = getCardPrice(item, 'CT');
                         const hue = getCardPrice(item, 'HUE');
                         const hn = getCardPrice(item, 'HN');
+                        const displayName = getServiceDisplayName(item);
 
                         return (
                           <tr key={item.id} className="hover:bg-indigo-50/20 transition-all group">
@@ -323,7 +341,7 @@ const App: React.FC = () => {
                               {String(index + 1).padStart(2, '0')}
                             </td>
                             <td className="px-5 py-6">
-                              <p className="text-sm font-black text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">{item.serviceName}</p>
+                              <p className="text-sm font-black text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">{displayName}</p>
                             </td>
                             <td className="px-5 py-6 text-center text-xs font-bold text-slate-500 tabular-nums">
                               {formatVND(item.originalPrice)}
