@@ -4,6 +4,7 @@ export interface ServiceRow {
   serviceName: string; // Tên fallback
   serviceNameVi: string;
   serviceNameJa: string;
+  category: string; // Phân loại dịch vụ
   originalPrice: number;
   campaign1: number | string;
   campaign2: number | string;

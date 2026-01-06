@@ -10,7 +10,8 @@ import {
   X,
   FileSpreadsheet,
   Check,
-  ShoppingCart
+  ShoppingCart,
+  Tag
 } from 'lucide-react';
 import { parseExcelFile } from './services/excelParser';
 import { ServiceRow } from './types';
@@ -21,7 +22,7 @@ const translations = {
   vi: {
     import: 'NHẬP DỮ LIỆU EXCEL',
     search: 'Tìm kiếm dịch vụ',
-    searchPlaceholder: 'Nhập tên dịch vụ...',
+    searchPlaceholder: 'Tìm tên hoặc danh mục...',
     worksheet: 'BẢNG TẠM TÍNH',
     subtitle: 'Pricing Consultation Worksheet',
     clearAll: 'XOÁ TOÀN BỘ',
@@ -42,14 +43,14 @@ const translations = {
     addNow: 'Thêm ngay',
     noData: 'Dữ liệu rỗng',
     backToTop: 'Lên đầu',
-    confirmClear: 'Đã xoá toàn bộ dịch vụ',
+    confirmClear: 'Bạn có chắc chắn muốn xoá TOÀN BỘ các dịch vụ đã chọn không?',
     errorExcel: 'Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng tệp tin.',
     notApplicable: 'Không áp dụng'
   },
   ja: {
     import: 'エクセル読み込み',
     search: 'サービス検索',
-    searchPlaceholder: 'サービス名を入力...',
+    searchPlaceholder: 'サービス名やカテゴリーで検索...',
     worksheet: '仮計算書',
     subtitle: '価格相談ワークシート',
     clearAll: '全て削除',
@@ -70,7 +71,7 @@ const translations = {
     addNow: '追加する',
     noData: 'データなし',
     backToTop: 'トップへ',
-    confirmClear: 'すべて削除しました',
+    confirmClear: '選択したすべてのサービスを削除してもよろしいですか？',
     errorExcel: 'Excelファイルの読み込み中にエラーが発生しました。形式を確認してください。',
     notApplicable: '対象外'
   }
@@ -127,7 +128,8 @@ const App: React.FC = () => {
     return data.filter(s => {
       const nameVi = (s.serviceNameVi || '').toLowerCase();
       const nameJa = (s.serviceNameJa || '').toLowerCase();
-      return nameVi.includes(q) || nameJa.includes(q);
+      const cat = (s.category || '').toLowerCase();
+      return nameVi.includes(q) || nameJa.includes(q) || cat.includes(q);
     });
   }, [data, searchQuery]);
 
@@ -140,10 +142,12 @@ const App: React.FC = () => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  // Cải thiện logic xoá: Thực hiện trực tiếp để đảm bảo tính phản hồi tức thì
   const clearCart = () => {
     if (cart.length > 0) {
-      setCart([]);
+      // Thêm câu hỏi xác nhận trước khi xoá
+      if (window.confirm(t.confirmClear)) {
+        setCart([]);
+      }
     }
   };
 
@@ -265,6 +269,10 @@ const App: React.FC = () => {
                     return (
                       <div key={service.id} className={`p-3.5 rounded-2xl border transition-all ${inCart ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-100 hover:shadow-md'}`}>
                         <div className="mb-3">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <Tag className="w-3 h-3 text-indigo-500" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{service.category}</span>
+                          </div>
                           <p className="text-sm font-bold text-slate-800 leading-snug mb-1">{displayName}</p>
                           <p className="text-xs font-bold text-slate-400 tabular-nums">{t.originalPrice}: {formatVND(service.originalPrice)}</p>
                         </div>
@@ -340,7 +348,12 @@ const App: React.FC = () => {
                               {String(index + 1).padStart(2, '0')}
                             </td>
                             <td className="px-5 py-6">
-                              <p className="text-sm font-black text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">{displayName}</p>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight flex items-center gap-1">
+                                  <Tag className="w-2.5 h-2.5" /> {item.category}
+                                </span>
+                                <p className="text-sm font-black text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">{displayName}</p>
+                              </div>
                             </td>
                             <td className="px-5 py-6 text-center text-xs font-bold text-slate-500 tabular-nums">
                               {formatVND(item.originalPrice)}

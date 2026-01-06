@@ -39,12 +39,14 @@ export const parseExcelFile = async (file: File): Promise<ServiceRow[]> => {
             const vnName = (item['Tên dịch vụ'] || item['Tên tiếng Việt'] || item['Tên VN'] || item['Service Name'] || '').toString().trim();
             const jpName = (item['施術名'] || item['Japanese Name'] || item['項目'] || '').toString().trim();
             const originalPrice = parsePrice(item['定価'] || item['Giá gốc']);
+            const category = (item['Danh mục'] || item['Category'] || item['Nhóm'] || item['分類'] || 'Dịch vụ lẻ').toString().trim();
             
             return {
               id: `${index}-${Date.now()}`,
               serviceName: vnName || jpName || 'No Name',
               serviceNameVi: vnName,
               serviceNameJa: jpName,
+              category: category,
               originalPrice: originalPrice as any, 
               campaign1: parsePrice(item['Khuyến mãi 1'] || item['Promo 1']),
               campaign2: parsePrice(item['Khuyến mãi 2'] || item['Promo 2']),
@@ -55,12 +57,10 @@ export const parseExcelFile = async (file: File): Promise<ServiceRow[]> => {
             };
           })
           .filter(row => {
-            // Chỉ lọc bỏ những dòng không có tên và không có giá gốc
             const hasBasicData = (row.serviceNameVi !== '' || row.serviceNameJa !== '') && typeof row.originalPrice === 'number';
             return hasBasicData;
           });
 
-        // Loại bỏ trùng lặp dựa trên tên và giá
         const uniqueRows: ServiceRow[] = [];
         const seenKeys = new Set<string>();
 
