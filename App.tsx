@@ -42,7 +42,7 @@ const translations = {
     addNow: 'Thêm ngay',
     noData: 'Dữ liệu rỗng',
     backToTop: 'Lên đầu',
-    confirmClear: 'Bạn có chắc chắn muốn xoá TOÀN BỘ dịch vụ khỏi bảng tạm tính?',
+    confirmClear: 'Đã xoá toàn bộ dịch vụ',
     errorExcel: 'Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng tệp tin.',
     notApplicable: 'Không áp dụng'
   },
@@ -70,7 +70,7 @@ const translations = {
     addNow: '追加する',
     noData: 'データなし',
     backToTop: 'トップへ',
-    confirmClear: '仮計算書からすべてのサービスを削除してもよろしいですか？',
+    confirmClear: 'すべて削除しました',
     errorExcel: 'Excelファイルの読み込み中にエラーが発生しました。形式を確認してください。',
     notApplicable: '対象外'
   }
@@ -140,10 +140,9 @@ const App: React.FC = () => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  // Khôi phục logic xác nhận trước khi xoá
+  // Cải thiện logic xoá: Thực hiện trực tiếp để đảm bảo tính phản hồi tức thì
   const clearCart = () => {
-    if (cart.length === 0) return;
-    if (window.confirm(t.confirmClear)) {
+    if (cart.length > 0) {
       setCart([]);
     }
   };
