@@ -10,8 +10,7 @@ import {
   X,
   FileSpreadsheet,
   Check,
-  ShoppingCart,
-  Tag
+  ShoppingCart
 } from 'lucide-react';
 import { parseExcelFile } from './services/excelParser';
 import { ServiceRow } from './types';
@@ -22,7 +21,7 @@ const translations = {
   vi: {
     import: 'NHẬP DỮ LIỆU EXCEL',
     search: 'Tìm kiếm dịch vụ',
-    searchPlaceholder: 'Tìm tên hoặc danh mục...',
+    searchPlaceholder: 'Tìm tên dịch vụ...',
     worksheet: 'BẢNG TẠM TÍNH',
     subtitle: 'Pricing Consultation Worksheet',
     clearAll: 'XOÁ TOÀN BỘ',
@@ -50,7 +49,7 @@ const translations = {
   ja: {
     import: 'エクセル読み込み',
     search: 'サービス検索',
-    searchPlaceholder: 'サービス名やカテゴリーで検索...',
+    searchPlaceholder: 'サービス名で検索...',
     worksheet: '仮計算書',
     subtitle: '価格相談ワークシート',
     clearAll: '全て削除',
@@ -128,8 +127,7 @@ const App: React.FC = () => {
     return data.filter(s => {
       const nameVi = (s.serviceNameVi || '').toLowerCase();
       const nameJa = (s.serviceNameJa || '').toLowerCase();
-      const cat = (s.category || '').toLowerCase();
-      return nameVi.includes(q) || nameJa.includes(q) || cat.includes(q);
+      return nameVi.includes(q) || nameJa.includes(q);
     });
   }, [data, searchQuery]);
 
@@ -144,7 +142,6 @@ const App: React.FC = () => {
 
   const clearCart = () => {
     if (cart.length > 0) {
-      // Thêm câu hỏi xác nhận trước khi xoá
       if (window.confirm(t.confirmClear)) {
         setCart([]);
       }
@@ -269,10 +266,6 @@ const App: React.FC = () => {
                     return (
                       <div key={service.id} className={`p-3.5 rounded-2xl border transition-all ${inCart ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-100 hover:shadow-md'}`}>
                         <div className="mb-3">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <Tag className="w-3 h-3 text-indigo-500" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{service.category}</span>
-                          </div>
                           <p className="text-sm font-bold text-slate-800 leading-snug mb-1">{displayName}</p>
                           <p className="text-xs font-bold text-slate-400 tabular-nums">{t.originalPrice}: {formatVND(service.originalPrice)}</p>
                         </div>
@@ -348,12 +341,7 @@ const App: React.FC = () => {
                               {String(index + 1).padStart(2, '0')}
                             </td>
                             <td className="px-5 py-6">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight flex items-center gap-1">
-                                  <Tag className="w-2.5 h-2.5" /> {item.category}
-                                </span>
-                                <p className="text-sm font-black text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">{displayName}</p>
-                              </div>
+                              <p className="text-sm font-black text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">{displayName}</p>
                             </td>
                             <td className="px-5 py-6 text-center text-xs font-bold text-slate-500 tabular-nums">
                               {formatVND(item.originalPrice)}
